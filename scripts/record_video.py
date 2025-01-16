@@ -26,7 +26,7 @@ background_subtractor = cv2.createBackgroundSubtractorMOG2(
 )
 
 # Define save path
-save_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+save_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "raw_videos")
 os.makedirs(save_folder, exist_ok=True)
 
 motion_detected_frames = 0

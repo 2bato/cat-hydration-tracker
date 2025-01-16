@@ -3,14 +3,14 @@ import time
 import os
 
 # Parameters
-MOTION_DURATION_THRESHOLD = 5
-CONTOUR_AREA_THRESHOLD = 200
-THRESHOLD_SENSITIVITY = 25
-BACKGROUND_SUBTRACTOR_HISTORY = 500
-BACKGROUND_SUBTRACTOR_THRESHOLD = 50
-FPS = 30
-POST_MOTION_FRAMES = 600
-
+MOTION_DURATION_THRESHOLD = 3
+CONTOUR_AREA_THRESHOLD = 75
+THRESHOLD_SENSITIVITY = 15
+BACKGROUND_SUBTRACTOR_HISTORY = 300
+BACKGROUND_SUBTRACTOR_THRESHOLD = 25
+FPS_SAVE = 1
+FPS_DETECT = 15
+POST_MOTION_FRAMES = 45
 
 # Initialize video capture with 1 for back camera 0 for front camera
 cap = cv2.VideoCapture(1)
@@ -26,11 +26,14 @@ background_subtractor = cv2.createBackgroundSubtractorMOG2(
 )
 
 # Define save path
-save_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "raw_videos")
+save_folder = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "raw_videos"
+)
 os.makedirs(save_folder, exist_ok=True)
 
 motion_detected_frames = 0
 post_motion_counter = 0
+frame_counter = 0
 
 while True:
     ret, frame = cap.read()
@@ -58,6 +61,7 @@ while True:
 
     # Start recording if motion is detected
     if motion_detected:
+        print("Motion detected!")
         motion_detected_frames += 1
         # Reset post-motion counter
         post_motion_counter = POST_MOTION_FRAMES
@@ -69,18 +73,18 @@ while True:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         output_path = os.path.join(save_folder, f"cat_{timestamp}.avi")
         output_file = cv2.VideoWriter(
-            output_path, fourcc, FPS, (frame.shape[1], frame.shape[0])
+            output_path, fourcc, FPS_SAVE, (frame.shape[1], frame.shape[0])
         )
         recording = True
         print(f"Recording started at {timestamp}")
 
     # Continue if motion, otherwise countdown or release if counter is at 0
     if recording:
-        if motion_detected:
-            output_file.write(frame)
-        elif post_motion_counter > 0:
-            output_file.write(frame)
-            post_motion_counter -= 1
+        if motion_detected or post_motion_counter > 0:
+            if frame_counter % FPS_DETECT == 0:
+                output_file.write(frame)
+            if not motion_detected:
+                post_motion_counter -= 1
         else:
             recording = False
             output_file.release()
@@ -88,6 +92,9 @@ while True:
 
     # Display frame
     cv2.imshow("Motion Detection", fgmask_thresh)
+
+    # Increment frame counter
+    frame_counter += 1
 
     # Break loop with 'q' key press
     if cv2.waitKey(1) & 0xFF == ord("q"):
